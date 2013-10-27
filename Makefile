@@ -10,5 +10,6 @@ all: $(EXTERNAL) $(SRC)
 	ghc -o main $(CFLAGS) $(EXTERNAL) $(SRC)
 	rm -f $(DUSTDIR)/*.hi *.hi $(DUSTDIR)/*.o *.o
 
-clear:
+clean:
 	rm -f $(DUSTDIR)/*.hi *.hi $(DUSTDIR)/*.o *.o
+	rm -f main
