@@ -1,0 +1,2 @@
+all:
+	ghc Ed25519.hs ed25519-donna/*
