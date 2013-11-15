@@ -1,5 +1,6 @@
 module Main where
 
+import System.Directory
 import MasterkeyManager
 import Communication
 import ParseUrl
@@ -9,7 +10,8 @@ import qualified Data.ByteString as B
 import Data.ByteString.Char8 (unpack, pack)
 
 main = do
-    masterKey <- generateMasterKey "" ""
+    masterKey <- loadMasterKey
+    saveMasterKey masterKey ""
 
     let password = "hahahaha"
     let passwordKey = genPasswordKey password
