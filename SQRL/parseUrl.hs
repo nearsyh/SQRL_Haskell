@@ -16,7 +16,7 @@ parseUrl :: String -> (String, String, String)
 parseUrl url = (domain, path, challenge) where
     -- TODO nut?
     l = splitRegex (mkRegex "\\?nut=") url
-    challenge = tail (l !! 1)
+    challenge = (l !! 1)
     (domain, path) = parsePath (l !! 0)
 
 getUrl :: String -> Integer -> [String] -> ByteString -> ByteString -> String
@@ -57,10 +57,14 @@ getOpt ls = "&sqrlopt=" ++ (foldl (\x -> \y -> x ++ "," ++ y) (head ls) (tail ls
 getParam :: String -> ByteString -> String
 getParam name value
     | B.length value == 0 = ""
-    | otherwise = name ++ "="  ++ (convert value)
+    | otherwise = name ++ "="  ++ (trim (convert value) '=')
 
 convert :: ByteString -> String
 convert bs = unpack (BU.encode bs)
+
+trim :: String -> Char -> String
+trim s a = ns where
+  ns = [i | i <- s, i /= a]
 
 
 ----------------------
