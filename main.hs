@@ -19,24 +19,27 @@ main = do
     let hashKey = xorByteString passwordKey masterKey
 
     url <- getLine
-    let (domain, path, challenge) = parseUrl url
+    let (scheme, domain, path, query, challenge) = parseUrl url
+    -- print scheme
+    -- print domain
+    -- print path
+    -- print query
+    -- print challenge
 
     let privateKey = privateKeyGen hashKey path
     let publicKey = makePubKey privateKey
 
 
-    let query = getUrl url 1 ["enforce"] publicKey (pack "")
-    let toSign = "sqrl://" ++ query
+    let (scheme, query) = getUrl url 1 ["enforce"] publicKey (pack "")
+    let toSign = scheme ++ "//" ++ query
     let signature = cryptoSign publicKey privateKey toSign
     let verify = cryptoVerify publicKey signature toSign
-    let newquery = "https://" ++ query
-    -- let body = getBody signature (pack "")
+    let newquery = if scheme == "sqrl:" then "https://" ++ query else "http://" ++ query
     -- print ("url = " ++ url)
     -- print ("challenge = " ++ challenge)
     -- print ("toSign = " ++ toSign)
     -- print ("publickey = " ++ (convert publicKey))
     -- print ("signature = " ++ (convert signature))
-    -- print ("verify = " ++ verify)
+    -- print (verify)
     -- print ("newquery = " ++ newquery)
-    -- print ("body = " ++ body)
     issueRequest newquery (convert signature) 

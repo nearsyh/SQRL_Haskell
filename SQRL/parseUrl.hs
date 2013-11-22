@@ -6,23 +6,39 @@ module ParseUrl (
 ) where
 
 import Text.Regex
+import Text.URI (queryToPairs)
+import Data.String.Utils
 import Network.URL
+import Network.URI
 import qualified Data.ByteString.Base64.URL as BU
 import qualified Data.ByteString as B
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (unpack, pack)
 
-parseUrl :: String -> (String, String, String)
-parseUrl url = (domain, path, challenge) where
-    -- TODO nut?
-    l = splitRegex (mkRegex "\\?nut=") url
-    challenge = (l !! 1)
-    (domain, path) = parsePath (l !! 0)
+--parseUrl2 :: String -> (String, String, String)
+--parseUrl2 url = (scheme, domain, path, challenge) where
+--    -- TODO nut?
+--    l = splitRegex (mkRegex "\\?nut=") url
+--    print l
+--    challenge = (l !! 1)
+--    (scheme, domain, path) = parsePath (l !! 0)
 
-getUrl :: String -> Integer -> [String] -> ByteString -> ByteString -> String
+parseUrl :: String -> (String, String, String, String, String)
+parseUrl url = let
+    l = split "|" url
+    newurl = replace "|" "/" url
+  in
+    case (parseURI) newurl of
+      Just u -> if length l == 1 then
+          (uriScheme u, getDomainFromAuth (uriAuthority u), uriPath u, uriQuery u, getChallenge (uriQuery u))
+        else
+          (uriScheme u, getDomainFromString (l !! 0), uriPath u, uriQuery u, getChallenge (uriQuery u))
+      Nothing -> ("", "", "", "", "")
+
+getUrl :: String -> Integer -> [String] -> ByteString -> ByteString -> (String, String)
 getUrl url ver opt pubKey prioKey = q where
-    (header, path, challenge) = parseUrl url
-    q = header ++ path ++ "?nut=" ++ challenge ++ (getVer ver) ++ (getOpt opt) ++ (getParam "&sqrlkey" pubKey) ++ (getParam "&sqrlold" prioKey)
+    (scheme, domain, path, query, challenge) = parseUrl url
+    q = (scheme, domain ++ path ++ query ++ (getVer ver) ++ (getOpt opt) ++ (getParam "&sqrlkey" pubKey) ++ (getParam "&sqrlold" prioKey))
 
 getBody :: ByteString -> ByteString -> String
 getBody sig oldSig = (getParam "sqrlsig" sig) ++ (getParam "sqrlpri" oldSig)
@@ -31,6 +47,19 @@ getBody sig oldSig = (getParam "sqrlsig" sig) ++ (getParam "sqrlpri" oldSig)
 ----------------------
 -- Helper Functions --
 ----------------------
+getDomainFromAuth :: Maybe URIAuth -> String
+getDomainFromAuth (Just auth) = u ++ r ++ p where
+  (URIAuth u r p) = auth
+getDomainFromAuth Nothing = ""
+
+getDomainFromString :: String -> String
+getDomainFromString url = last (split "//" url)
+
+getChallenge :: String -> String
+getChallenge query = nut where
+  table = queryToPairs (tail query)
+  nut = head [n | (k, n) <- table, k == "nut"]
+
 parsePath :: String -> (String, String)
 parsePath url = 
     case importURL url of
