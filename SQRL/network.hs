@@ -1,13 +1,9 @@
 module MyNetwork (
-    getRequest,
-    issueRequest,
-    getResponseStatus,
-    getResponseVersion,
-    getResponseHeaders,
-    getResponseBody,
-    getResponseCookieJar
+    login
 ) where
 
+import SQRLCrypto
+import qualified SQRLUrl as SURL
 import Data.ByteString.Char8 (pack)
 import Network.HTTP.Conduit
 import Network.HTTP.Types
@@ -16,12 +12,17 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as LB
 import Data.Default
 
+login :: ByteString -> String -> String -> IO (Response LB.ByteString)
+login masterKey password url = do
+    let (scheme, domain, path, query, challenge) = SURL.parseUrl url
+    let (privateKey, publicKey) = genKeyPair masterKey password domain
+    let (scheme, head, query) = SURL.getUrl url 1 [] publicKey (pack "")
+    let (sig, pub) = genSigAndPub (privateKey, publicKey) (scheme ++ "//" ++ query)
+    issueRequest (head ++ "//" ++ query) sig
+
 getRequest :: (Monad m) => String -> String -> IO (Request m)
 getRequest url body = do
     initReq <- parseUrl url
-    --let req = initReq { method = methodPost,
-    --            secure = True,
-    --            requestBody = RequestBodyBS (pack body)}
     let req' = initReq { secure = True, method = methodPost }
     let req = (flip urlEncodedBody) req' $ [((pack "sqrlsig"), (pack body))]
     return req
@@ -31,9 +32,3 @@ issueRequest url body = withSocketsDo $ do
     r <- getRequest url body
     res <- withManager $ httpLbs r
     return res
-
-getResponseStatus = responseStatus
-getResponseVersion = responseVersion
-getResponseHeaders = responseHeaders
-getResponseBody = responseBody
-getResponseCookieJar = responseCookieJar

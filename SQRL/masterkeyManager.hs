@@ -1,17 +1,16 @@
 module MasterkeyManager (
     loadMasterKey,
-    saveMasterKey,
-    xorByteString
+    saveMasterKey
 ) where
 
 import System.Directory
+import SQRLUtil
 import Dust.Ed25519
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import Data.ByteString.Char8 (unpack, pack)
 import Crypto.PBKDF.Core
 import Crypto.Random
-import Data.Bits (xor, Bits)
 
 loadMasterKey :: IO ByteString
 loadMasterKey = do
@@ -40,9 +39,3 @@ generateMasterKey old diff
         let diff2 = pack diff
         return (xorByteString old2 diff2)
 
-xorByteString :: ByteString -> ByteString -> ByteString
-xorByteString a b = B.pack lc
-    where
-        la = B.unpack a
-        lb = B.unpack b
-        lc = [xor x y | (x, y) <- zip la lb]
